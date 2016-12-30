@@ -73,7 +73,7 @@ describe FailToBan do
         allow(Time).to receive(:now).and_return(Time.new('2015', '01', '01'))
         foo = described_class.new(storage: storage, unique_key: key)
 
-        described_class::PERMIT_FAIL_ATTEMPS.times do
+        (described_class::PERMIT_FAIL_ATTEMPS + 1).times do
           expect(foo.protect).to eq :ok
         end
         expect(foo.protect).to eq :blocked
