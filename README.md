@@ -9,7 +9,7 @@ Handle brute force on key backed by Redis.
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'fail_to_ban'
+gem 'fail_to_ban', git: 'https://github.com/jobteaser/fail_to_ban.git', tag: 'v0.1.1'
 ```
 
 And then execute:
