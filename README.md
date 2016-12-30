@@ -1,6 +1,7 @@
 # FailToBan
 
 [![Build Status](https://travis-ci.org/jobteaser/fail_to_ban.svg?branch=master)](https://travis-ci.org/jobteaser/fail_to_ban)
+[![Code Climate](https://codeclimate.com/repos/58667ffceab18f66d7000836/badges/86fb76a0e71dd832bdea/gpa.svg)](https://codeclimate.com/repos/58667ffceab18f66d7000836/feed)
 
 Handle brute force on key backed by Redis.
 
