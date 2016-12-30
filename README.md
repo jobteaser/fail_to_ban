@@ -33,10 +33,9 @@ protection.block?
 protection.protect
 # => :ok
 
-# this method increment fail
-# after 3 attempts key is blocked
-# 30 seconds
-
+# Backoff : after 3 failed attempts there is a 15 seconds wait
+# If it fails again then it's 30 seconds, then 45,
+# In any case, set a +/- 10% jitter on the wait (e.g 14, 28, 47, ...)
 protection.protect
 # => :blocked
 
