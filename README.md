@@ -11,7 +11,7 @@ Handle brute force on key backed by Redis.
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'fail_to_ban', git: 'https://github.com/jobteaser/fail_to_ban.git', tag: 'v0.1.1'
+gem 'fail_to_ban', git: 'https://github.com/jobteaser/fail_to_ban.git'
 ```
 
 And then execute:
@@ -24,21 +24,31 @@ Or install it yourself as:
 
 ## Usage
 
+|parameter|description|type|default|
+|---------|-----------|----|-------|
+|permitted_attempts|The number of authorized attempts before being blocked.|integer|3
+|backoff_step|The amount of time to wait that will be added after every locking (in seconds).|integer|15
+|backoff_cap|The amount of backoff time after wich the backoff time stop increasing (in seconds).|integer|nil
+
 ```ruby
 
 $redis = Redis.new
 
-protection = FailToBan.new(storage: $redis, unique_key: "dev@jobteaser.com")
-protection.block?
+protection = FailToBan.new(
+  storage: $redis,
+  unique_key: 'dev@jobteaser.com',
+  config: { permitted_attempts: 3, backoff_step: 15 }
+)
+protection.blocked?
 # => false
 
-protection.protect
+protection.attempt
 # => :ok
 
 # Backoff : after 3 failed attempts there is a 15 seconds wait
 # If it fails again then it's 30 seconds, then 45,
 # In any case, set a +/- 10% jitter on the wait (e.g 14, 28, 47, ...)
-protection.protect
+protection.attempt
 # => :blocked
 
 # this method reset blocked key
@@ -46,9 +56,14 @@ protection.reset
 # => :ok
 
 # this methdod return ETA when account
-# was unblock
+# will be unlocked
 protection.unlock_at
 # => timestamp
+
+# this methdod return the estimated time the
+# account will be locked
+protection.unlock_in
+# => time in seconds
 
 ```
 
@@ -61,4 +76,3 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/jobteaser/fail_to_ban. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
-
