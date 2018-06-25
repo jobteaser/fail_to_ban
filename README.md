@@ -28,11 +28,17 @@ Or install it yourself as:
 
 $redis = Redis.new
 
-protection = FailToBan.new(storage: $redis, unique_key: "dev@jobteaser.com")
-protection.block?
+FailToBan.new(
+  key: 'dev@jobteaser.com',
+  storage: $redis,
+  strategy: Strategies::BackoffStrategy, # Optionnal
+  config: { permitted_attempts: 3, backoff_step: 15 } # Optionnal
+)
+
+protection.blocked?
 # => false
 
-protection.protect
+protection.attempt
 # => :ok
 
 # Backoff : after 3 failed attempts there is a 15 seconds wait
@@ -45,8 +51,13 @@ protection.protect
 protection.reset
 # => :ok
 
-# this methdod return ETA when account
-# was unblock
+# this method return ETA when account
+# will be unblocked
+protection.unlock_at
+# => timestamp
+
+# this method return the time left before
+# the account will be unblocked
 protection.unlock_at
 # => timestamp
 
@@ -61,4 +72,3 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/jobteaser/fail_to_ban. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
-
