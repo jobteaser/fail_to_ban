@@ -1,5 +1,5 @@
 require 'fail_to_ban/version'
-require 'strategies/backoff_strategy'
+require 'fail_to_ban/strategies/backoff_strategy'
 require 'forwardable'
 
 class FailToBan
