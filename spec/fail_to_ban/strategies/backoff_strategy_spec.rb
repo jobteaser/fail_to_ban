@@ -32,113 +32,87 @@ class NullStorage
     @null_data.delete(k)
   end
 
+  def flushdb
+    @null_data.clear
+  end
+
 end
 
 RSpec.describe FailToBan::Strategies::BackoffStrategy do
 
-  it "has a version number" do
-    expect(FailToBan::VERSION).not_to be nil
+  subject do
+    described_class.new(
+      key: key,
+      storage: storage
+    )
   end
 
-  let(:storage) { NullStorage.new(data) }
+  let(:storage) { NullStorage.new }
+  let(:key) { 'dev@jobteaser.com' }
+
+  after { storage.flushdb }
 
   describe '#attempt' do
-    subject do
-      FailToBan.new(
-        key: key,
-        storage: storage,
-        strategy: described_class,
-        config: { permitted_attempts: 3, backoff_step: 15 }
+    it 'checks against the retry count' do
+      allow(Time).to receive(:now).and_return(Time.new('2015', '01', '01').utc)
+
+      3.times { expect(subject.attempt).to eq :ok }
+      expect(subject.attempt).to eq :blocked
+    end
+
+    it 'does not take old locks into account' do
+      storage.hset("fail_to_ban:#{key}", 'retry_count', '5')
+      storage.hset(
+        "fail_to_ban:#{key}",
+        'unlock_at',
+        Time.new('2014', '12', '12').utc.to_i.to_s
       )
+
+      allow(Time).to receive(:now).and_return(Time.new('2015', '01', '01').utc)
+      expect(subject.attempt).to eq :ok
     end
 
-    let(:key) { 'dev@jobteaser.com' }
-    let(:data) { {} }
+    it 'takes current locks into account' do
+      storage.hset("fail_to_ban:#{key}", 'retry_count', '5')
+      storage.hset(
+        "fail_to_ban:#{key}",
+        'unlock_at',
+        Time.new('2014', '12', '12').utc.to_i.to_s
+      )
 
-    it 'increments retry_count' do
-      expect { subject.attempt }.to change {
-        storage.hget("fail_to_ban:#{key}", 'retry_count')
-      }.from(nil).to(1)
-    end
-
-    it 'returns :ok' do
-      expect(subject.attempt).to be :ok
-    end
-
-    context 'when retry exceeds the permitted_attempts' do
-      let(:data) { {} }
-
-      it 'returns :blocked' do
-        allow(Time).to receive(:now).and_return(Time.new('2015', '01', '01'))
-
-        3.times { expect(subject.attempt).to eq :ok }
-        expect(subject.attempt).to eq :blocked
-      end
-    end
-
-    context 'when unlock_at have expired' do
-      let(:data) do
-        { "fail_to_ban:#{key}" => { 'retry_count' => '5', 'unlock_at' => Time.new('2014', '12', '12').to_i.to_s } }
-      end
-
-      it 'returns :ok' do
-        allow(Time).to receive(:now).and_return(Time.new('2015', '01', '01'))
-        expect(subject.attempt).to eq :ok
-      end
+      allow(Time).to receive(:now).and_return(Time.new('2014', '12', '11').utc)
+      expect(subject.attempt).to eq :blocked
     end
   end
 
   describe '#blocked?' do
-    subject do
-      FailToBan.new(
-        key: key,
-        storage: storage,
-        strategy: described_class
+    it 'is not blocked by default' do
+      expect(subject.blocked?).to be(false)
+    end
+
+    it 'takes current locks into account' do
+      storage.hset("fail_to_ban:#{key}", 'retry_count', '4')
+      storage.hset(
+        "fail_to_ban:#{key}",
+        'unlock_at',
+        Time.new('2014', '12', '12').utc.to_i.to_s
       )
-    end
+      allow(Time).to receive(:now).and_return(Time.new('2014', '12', '11').utc)
 
-    let(:key) { 'dev@jobteaser.com' }
-
-    context 'when key is not blocked' do
-      let(:data) { {} }
-
-      it 'returns false' do
-        expect(subject.blocked?).to be false
-      end
-    end
-
-    context 'when key is blocked' do
-      let(:data) do
-        { "fail_to_ban:#{key}" => {"retry_count" => "4", "unlock_at" => " 1477401039" }  }
-      end
-
-      it 'returns true' do
-        allow(Time).to receive(:now).and_return(Time.new('2015', '01', '01'))
-        expect(subject.blocked?).to be true
-      end
+      expect(subject.blocked?).to be(true)
     end
   end
 
   describe '#reset' do
-    subject do
-      FailToBan.new(
-        key: key,
-        storage: storage,
-        strategy: described_class
-      )
-    end
+    it 'removes the data associated with the key from storage' do
+      storage.hset("fail_to_ban:#{key}", 'retry_count', '0')
+      storage.hset("fail_to_ban:#{key}", 'unlock_at', '0')
 
-    let(:key) { 'dev@jobteaser.com' }
-    let(:data) do
-      { "fail_to_ban:#{key}" => { 'retry_count' => '0', 'unlock_at' => '0' } }
-    end
-
-    it 'removes retry_count from storage' do
-      expect { subject.reset }.to change { storage.hget("fail_to_ban:#{key}", 'retry_count') }.from('0').to(nil)
-    end
-
-    it 'removes unlock_at from storage' do
-      expect { subject.reset }.to change { storage.hget("fail_to_ban:#{key}", 'unlock_at') }.from('0').to(nil)
+      expect { subject.reset }.
+        to change { storage.hget("fail_to_ban:#{key}", 'retry_count') }.
+        from('0').to(nil).
+        and change { storage.hget("fail_to_ban:#{key}", 'unlock_at') }.
+        from('0').to(nil)
     end
   end
 

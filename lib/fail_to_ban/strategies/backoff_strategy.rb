@@ -3,12 +3,18 @@ class FailToBan
     class BackoffStrategy
 
       PROTECT_DURATION = 60 * 60 * 24 # eq 24 hours in seconds
-      JITTER_VARIANCE = 0.2
+      private_constant :PROTECT_DURATION
 
-      def initialize(key:, storage:, config:)
+      JITTER_VARIANCE = 0.2
+      private_constant :JITTER_VARIANCE
+
+      HEADER = 'fail_to_ban'.freeze
+      private_constant :HEADER
+
+      def initialize(key:, storage:, config: {})
         @storage = storage
         @config = default_config.merge(config)
-        @id = "fail_to_ban:#{key}"
+        @id = "#{HEADER}:#{key}"
       end
 
       def call
@@ -26,16 +32,14 @@ class FailToBan
       end
 
       def reset
-        @storage.del(id)
+        @storage.del(@id)
       end
 
       def unlock_at
-        @storage.hget(id, 'unlock_at').to_i
+        @storage.hget(@id, 'unlock_at').to_i
       end
 
       private
-
-      attr_reader(:id)
 
       def default_config
         {
@@ -46,13 +50,13 @@ class FailToBan
       end
 
       def increment_failed_attempts
-        @storage.hincrby(id, 'retry_count', 1)
-        @storage.hset(id, 'unlock_at', Time.now.to_i + backoff)
-        @storage.expire(id, PROTECT_DURATION)
+        @storage.hincrby(@id, 'retry_count', 1)
+        @storage.hset(@id, 'unlock_at', Time.now.to_i + backoff)
+        @storage.expire(@id, PROTECT_DURATION)
       end
 
       def retry_count
-        @storage.hget(id, 'retry_count').to_i
+        @storage.hget(@id, 'retry_count').to_i
       end
 
       # Backoff : after the permitted_attempts is exceeded is a x seconds wait
