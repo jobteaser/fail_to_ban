@@ -24,15 +24,55 @@ Or install it yourself as:
 
 ## Usage
 
+We provide a default backoff strategy, see: [backoff_strategy.rb](lib/fail_to_ban/strategies/backoff_strategy.rb)
+
+You can make your own custom strategy and inject it, your strategy will be initialized with the following parameters: `key`, `storage`, `config`
+
+The following methods should be implemented:
+
+|Name     |Type   |Description|
+|---------|-------|-----------|
+|attempt  |symbol |Make a connection attempt, could increment a retry_count for example.|
+|blocked? |boolean|Should Tell wether the key should be blocked for another attempt.        |
+|reset    |symbol |Should remove the key in storage.                            |
+|unlock_at|Time   |Should return the time when the lock will be lifted.                     |
+
+```ruby
+$redis = Redis.new
+
+FailToBan.new(
+  key: 'hello/42', # Can be any string, should be unique
+  storage: $redis, # A key value storage compatible with the redis api
+  strategy: Strategies::BackoffStrategy, # Optionnal
+  config: { permitted_attempts: 3, backoff_step: 15 } # Optionnal
+)
+```
+
+### An example with the default `BackoffStrategy`
+
+#### Config parameters
+
+|Parameter         |Type   |Description|Default|
+|------------------|-------|-----------|-------|
+|permitted_attempts|Integer|The number of permitted attemps before locking the key.|3|
+|backoff_step      |Integer|The time the key will be locked for, in seconds, and incrementing after every fail.|15|
+|backoff_cap       |Integer|The time after which the unlock_at will stop being incremented. (nil = no limit)|nil|
+
 ```ruby
 
 $redis = Redis.new
 
-protection = FailToBan.new(storage: $redis, unique_key: "dev@jobteaser.com")
-protection.block?
+FailToBan.new(
+  key: 'dev@jobteaser.com',
+  storage: $redis,
+  strategy: Strategies::BackoffStrategy, # By default
+  config: { permitted_attempts: 3, backoff_step: 15 }
+)
+
+protection.blocked?
 # => false
 
-protection.protect
+protection.attempt
 # => :ok
 
 # Backoff : after 3 failed attempts there is a 15 seconds wait
@@ -45,8 +85,13 @@ protection.protect
 protection.reset
 # => :ok
 
-# this methdod return ETA when account
-# was unblock
+# this method returns ETA when account
+# will be unblocked
+protection.unlock_at
+# => timestamp
+
+# this method returns the time left before
+# the account will be unblocked
 protection.unlock_at
 # => timestamp
 
@@ -61,4 +106,3 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/jobteaser/fail_to_ban. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
-
