@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'fail_to_ban/version'
 require 'fail_to_ban/strategies/backoff_strategy'
 require 'forwardable'
@@ -12,6 +14,6 @@ class FailToBan
   def_delegators :@strategy, :attempt, :blocked?, :reset, :unlock_at
 
   def unlock_in
-    unlock_at - Time.now.to_i
+    (unlock_at - Time.now.utc).to_i
   end
 end

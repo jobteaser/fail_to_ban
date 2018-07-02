@@ -39,9 +39,11 @@ RSpec.describe FailToBan do
 
   describe '#unlock_in' do
     it 'relies on the strategy' do
-      allow(Time).to receive(:now).and_return(27)
-      expect_any_instance_of(NullStrategy).to receive(:unlock_at).and_return(69)
-      expect(subject.unlock_in).to eq(42)
+      allow(Time).to receive(:now).and_return(Time.new('2014', '12', '11').utc)
+      expect_any_instance_of(NullStrategy)
+        .to receive(:unlock_at)
+        .and_return(Time.new('2014', '12', '12').utc)
+      expect(subject.unlock_in).to eq(24 * 60 * 60) # 1 day in seconds
     end
   end
 

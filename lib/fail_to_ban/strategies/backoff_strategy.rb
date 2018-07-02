@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class FailToBan
   module Strategies
     class BackoffStrategy
@@ -8,7 +10,7 @@ class FailToBan
       JITTER_VARIANCE = 0.2
       private_constant :JITTER_VARIANCE
 
-      HEADER = 'fail_to_ban'.freeze
+      HEADER = 'fail_to_ban'
       private_constant :HEADER
 
       def initialize(key:, storage:, config: {})
@@ -28,7 +30,7 @@ class FailToBan
       end
 
       def blocked?
-        retry_count >= @config[:permitted_attempts] && Time.now.to_i < unlock_at
+        retry_count >= @config[:permitted_attempts] && Time.now.utc.to_i < unlock_at
       end
 
       def reset
@@ -51,7 +53,7 @@ class FailToBan
 
       def increment_failed_attempts
         @storage.hincrby(@id, 'retry_count', 1)
-        @storage.hset(@id, 'unlock_at', Time.now.to_i + backoff)
+        @storage.hset(@id, 'unlock_at', Time.now.utc.to_i + backoff)
         @storage.expire(@id, PROTECT_DURATION)
       end
 
