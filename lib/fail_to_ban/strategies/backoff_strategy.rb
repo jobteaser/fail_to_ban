@@ -19,10 +19,6 @@ class FailToBan
         @id = "#{HEADER}:#{key}"
       end
 
-      def call
-        true
-      end
-
       def attempt
         return :blocked if blocked?
         increment_failed_attempts
