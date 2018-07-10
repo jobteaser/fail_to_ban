@@ -42,7 +42,7 @@ RSpec.describe FailToBan do
       allow(Time).to receive(:now).and_return(Time.new('2014', '12', '11').utc)
       expect_any_instance_of(NullStrategy)
         .to receive(:unlock_at)
-        .and_return(Time.new('2014', '12', '12').utc)
+        .and_return(Time.new('2014', '12', '12').utc.to_i)
       expect(subject.unlock_in).to eq(24 * 60 * 60) # 1 day in seconds
     end
   end
