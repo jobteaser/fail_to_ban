@@ -14,6 +14,6 @@ class FailToBan
   def_delegators :@strategy, :attempt, :blocked?, :reset, :unlock_at
 
   def unlock_in
-    (unlock_at - Time.now.utc).to_i
+    (unlock_at - Time.now.utc.to_i)
   end
 end
