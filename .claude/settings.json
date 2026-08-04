@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "jobteaser-ruby@jobteaser": true,
+    "ruby-lsp@claude-plugins-official": true
+  }
+}
