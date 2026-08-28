@@ -1,0 +1,43 @@
+jobs:
+  build:
+    docker:
+      - image: 'cimg/base:stable'
+    steps:
+      - checkout
+      - restore_cache:
+          key: bundle-{{ .Branch }}-{{ checksum "Gemfile.lock" }}
+      - ruby/install:
+          version: '2.6'
+      - run: echo "Ruby 2.6 has been installed"
+      - run: gem install bundler -v 2.0.1 --force
+      - run: bundle install
+      - save_cache:
+          key: bundle-{{ .Branch }}-{{ checksum "Gemfile.lock" }}
+          paths:
+            - "bundle_cache"
+
+  test:
+    docker:
+      - image: 'cimg/base:stable'
+    steps:
+      - checkout
+      - restore_cache:
+          key: bundle-{{ .Branch }}-{{ checksum "Gemfile.lock" }}
+      - ruby/install:
+          version: '2.6'
+      - run: echo "Ruby 2.6 has been installed"
+      - run: gem install bundler -v 2.0.1 --force
+      - run: bundle install
+      - run: bundle exec rake test
+
+workflows:
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+
+orbs:
+  ruby: circleci/ruby@1.1.1
+version: 2.1
